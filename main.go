@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -68,4 +69,22 @@ func getTopLevelDomains() ([]string, error) {
 		topLevelDomains = append(topLevelDomains, strings.TrimSpace(line))
 	}
 	return topLevelDomains, nil
+}
+
+func checkDomain(domain models.Domain) models.DomainResult {
+	_, err := http.Get(domain.GetURL())
+	if err != nil {
+		return models.DomainResult{
+			Domain:      domain,
+			IsReachable: false,
+			IsForSale:   false, //todo: Check
+			Error:       err,
+		}
+	}
+	return models.DomainResult{
+		Domain:      domain,
+		IsReachable: true,
+		IsForSale:   false, //todo: Check
+		Error:       nil,
+	}
 }
