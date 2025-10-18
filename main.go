@@ -17,10 +17,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get results & print out to stdout
 	for _, domain := range domains {
-		fmt.Println(domain.GetURL())
+		result := checkDomain(domain)
+		result.PrintResult()
 	}
-
 }
 
 func getDomains() ([]models.Domain, error) {
