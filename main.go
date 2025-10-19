@@ -28,7 +28,7 @@ func getDomains() ([]models.Domain, error) {
 	// Get domain names from input file
 	lines, err := utils.ReadFile("./input/domain_names.txt")
 	if err != nil {
-		fmt.Errorf("Failed to get domains from input file:%v\n", err)
+		fmt.Println("Failed to get domains from input file:", err)
 		return nil, err
 	}
 
