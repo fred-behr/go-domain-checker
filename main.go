@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/fred-behr/go-domain-checker/models"
 	"github.com/fred-behr/go-domain-checker/utils"
@@ -17,10 +17,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get results & print out to stdout
+	// Init DomainChecker
+	domainChecker := models.NewDomainChecker()
+
+	ch := make(chan models.DomainResult)
+	sem := make(chan struct{}, 10) // limit concurrency
+	var wg sync.WaitGroup
+
 	for _, domain := range domains {
-		result := checkDomain(domain)
-		result.PrintResult()
+		wg.Add(1)
+		go func(d models.Domain) {
+			defer wg.Done()
+			sem <- struct{}{} // acquire
+			utils.CheckDomain(d, domainChecker, ch)
+			<-sem // release
+		}(domain)
+	}
+
+	// Close channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Print results
+	for result := range ch {
+		go func(result models.DomainResult) {
+			result.PrintResult()
+		}(result)
 	}
 }
 
@@ -70,22 +94,4 @@ func getTopLevelDomains() ([]string, error) {
 		topLevelDomains = append(topLevelDomains, strings.TrimSpace(line))
 	}
 	return topLevelDomains, nil
-}
-
-func checkDomain(domain models.Domain) models.DomainResult {
-	_, err := http.Get(domain.GetURL())
-	if err != nil {
-		return models.DomainResult{
-			Domain:      domain,
-			IsReachable: false,
-			IsForSale:   false, //todo: Check
-			Error:       err,
-		}
-	}
-	return models.DomainResult{
-		Domain:      domain,
-		IsReachable: true,
-		IsForSale:   false, //todo: Check
-		Error:       nil,
-	}
 }
